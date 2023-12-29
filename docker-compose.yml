@@ -1,0 +1,20 @@
+version: '3'
+services:
+  bot:
+    container_name: "lgpu-shedule-bot"
+    restart: "unless-stopped"
+    build: 
+      context: "./bot"
+      dockerfile: Dockerfile
+    ports:
+      - "3005:3000"
+    volumes:
+      - ./bot:/var/www/api
+    networks:
+      - 'bot_network'
+    
+
+
+networks:
+  bot_network:
+    external: true
