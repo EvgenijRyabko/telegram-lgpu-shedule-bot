@@ -2,6 +2,7 @@ import { Telegraf, Telegram } from "telegraf";
 import { message } from "telegraf/filters";
 import { logger } from "./utils/logger.js";
 import { sendSheduleJob } from "./cron/sendSheduleJob.js";
+import 'dotenv/config.js'
 
 const bot = new Telegraf(process.env.BOT_TOKEN);
 const telegram = new Telegram(process.env.BOT_TOKEN);
