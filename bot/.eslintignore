@@ -1,0 +1,10 @@
+**/.git
+**/.svn
+**/.hg
+node_modules
+storage
+public
+Dockerfile.*
+.env
+.env.example
+unitTests

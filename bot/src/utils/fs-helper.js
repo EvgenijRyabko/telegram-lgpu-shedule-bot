@@ -1,5 +1,5 @@
-import * as fs from "fs/promises";
-import { logger } from "./logger.js";
+import * as fs from 'fs/promises';
+import { logger } from './logger.js';
 
 export async function checkPathExist(path) {
   try {
@@ -10,13 +10,28 @@ export async function checkPathExist(path) {
   }
 }
 
-writeFile;
-
 export async function mkdir(path) {
   try {
     await fs.mkdir(path, { recursive: true });
   } catch (e) {
-    logger.error(e, "FS");
+    logger.error(e, 'FS');
+  }
+}
+
+export async function dropFile(path, handler = (e) => e) {
+  await fs
+    .unlink(path)
+    .then(handler)
+    .catch((e) => {
+      logger.error(e, 'FS');
+    });
+}
+
+export async function clearFile(path) {
+  try {
+    await fs.truncate(path);
+  } catch (e) {
+    logger.error(e, 'FS');
   }
 }
 
@@ -24,6 +39,6 @@ export async function writeFile(path, data) {
   try {
     await fs.writeFile(path, data);
   } catch (e) {
-    logger.error(e, "FS");
+    logger.error(e, 'FS');
   }
 }
