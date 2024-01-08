@@ -1,15 +1,20 @@
 import { CronJob } from 'cron';
 import { Telegram, Input } from 'telegraf';
-import { checkPathExist, clearFile } from '../utils/fs-helper.js';
+import { checkPathExist, clearFile } from '../utils/fs-helper';
 import 'dotenv/config';
 
-const telegram = new Telegram(process.env.BOT_TOKEN);
+const sendReportJob = new CronJob('* 8,22 * * *', (f: any) => f, undefined, true);
 
-let sendReportJob = new CronJob('* 8,22 * * *', (f) => f, undefined, true);
-
-const sendReport = async (info, status) => {
+const sendReport = async (
+  info: {
+    counter: number;
+    errors: Error[] | string[];
+  },
+  status: boolean,
+  telegram: Telegram,
+) => {
   await telegram.sendMessage(
-    process.env.TG_COMMAND_GROUP_ID,
+    process.env.TG_COMMAND_GROUP_ID || 'Random string',
     `Отчет по работе бота:\n` +
       `Файлов отправлено: ${info.counter}\n` +
       `Ошибок: ${info.errors.length}\n` +
@@ -17,7 +22,10 @@ const sendReport = async (info, status) => {
   );
 
   if (info.errors.length) {
-    await telegram.sendDocument(process.env.TG_COMMAND_GROUP_ID, Input.fromLocalFile('error.log'));
+    await telegram.sendDocument(
+      process.env.TG_COMMAND_GROUP_ID || 'Random string',
+      Input.fromLocalFile('error.log'),
+    );
   }
 
   const errorLogExist = await checkPathExist('error.log');
@@ -35,8 +43,15 @@ const sendReport = async (info, status) => {
   info.errors = [];
 };
 
-const startReportJob = async (info, status) => {
-  sendReportJob.addCallback(async () => sendReport(info, status));
+const startReportJob = async (
+  info: {
+    counter: number;
+    errors: Error[] | string[];
+  },
+  status: boolean,
+  telegram: Telegram,
+) => {
+  sendReportJob.addCallback(async () => sendReport(info, status, telegram));
 
   sendReportJob.start();
 };
