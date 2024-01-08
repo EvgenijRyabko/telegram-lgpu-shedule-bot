@@ -1,15 +1,21 @@
-import { Input, Telegraf } from 'telegraf';
-import { logger } from './utils/logger.js';
-import { startSheduleJob, stopSheduleJob, getSheduleJobStatus } from './cron/sendSheduleJob.js';
-import { startReportJob, stopReportJob, getReportJobStatus } from './cron/sendReportJob.js';
+import { Input, Telegraf, Telegram } from 'telegraf';
+import { logger } from './utils/logger';
+import { startSheduleJob, stopSheduleJob, getSheduleJobStatus } from './cron/sendSheduleJob';
+import { startReportJob, stopReportJob, getReportJobStatus } from './cron/sendReportJob';
 import 'dotenv/config.js';
 
-const info = {
+const info: {
+  counter: number;
+  errors: Error[] | string[];
+} = {
   counter: 0,
   errors: [],
 };
 
-const bot = new Telegraf(process.env.BOT_TOKEN);
+const botToken = process.env.BOT_TOKEN || 'Not token';
+
+const bot = new Telegraf(botToken);
+const telegram = new Telegram(botToken);
 
 bot.launch().catch((e) => {
   logger.error(e, 'Bot');
@@ -31,7 +37,7 @@ bot.command('getErrors', async (ctx) => {
 
 bot.command('startShedule', async (ctx) => {
   if (ctx.update.message.chat.id === Number(process.env.TG_COMMAND_GROUP_ID)) {
-    await startSheduleJob(info);
+    await startSheduleJob(info, telegram);
     await logger.log('Shedule Job started', 'Cron');
   }
 });
@@ -54,7 +60,7 @@ bot.command('sheduleStatus', async (ctx) => {
 bot.command('startReport', async (ctx) => {
   if (ctx.update.message.chat.id === Number(process.env.TG_COMMAND_GROUP_ID)) {
     const status = await getSheduleJobStatus();
-    await startReportJob(info, status);
+    await startReportJob(info, status, telegram);
     await logger.log('Report Job started', 'Cron');
   }
 });
@@ -77,8 +83,8 @@ bot.command('reportStatus', async (ctx) => {
 (async () => {
   const status = await getSheduleJobStatus();
 
-  await startReportJob(info, status);
-  await startSheduleJob(info);
+  await startReportJob(info, status, telegram);
+  await startSheduleJob(info, telegram);
 })();
 
 // Enable graceful stop

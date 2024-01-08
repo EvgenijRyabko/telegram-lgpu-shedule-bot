@@ -14,24 +14,20 @@ class CustomLogger {
     ],
   });
 
-  async log(message, fromModule, optionalParam) {
+  async log(message: string, fromModule: string = 'global', optionalParam?: any) {
     if (optionalParam) {
       this.winstonFileLogger.info(new Date().toISOString() + ' - ' + message).child(optionalParam);
       return;
     }
-    this.winstonFileLogger.info(
-      `[${fromModule || 'global'}]` + new Date().toISOString() + ' - ' + message,
-    );
+    this.winstonFileLogger.info(`[${fromModule}]` + new Date().toISOString() + ' - ' + message);
   }
 
-  async error(message, fromModule, optionalParam) {
+  async error(message: string, fromModule: string = 'global', optionalParam?: any) {
     if (optionalParam) {
       this.winstonFileLogger.error(new Date().toISOString() + ' - ' + message).child(optionalParam);
       return;
     }
-    this.winstonFileLogger.error(
-      `[${fromModule || 'global'}]` + new Date().toISOString() + ' - ' + message,
-    );
+    this.winstonFileLogger.error(`[${fromModule}]` + new Date().toISOString() + ' - ' + message);
   }
 }
 
