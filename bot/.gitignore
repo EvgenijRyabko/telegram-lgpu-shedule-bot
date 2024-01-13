@@ -1,11 +1,10 @@
 .env
 
 /storage
+/dist
 
 error.log
 
 combined.log
 
 node_modules
-
-package-lock.json
