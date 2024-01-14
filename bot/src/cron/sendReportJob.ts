@@ -3,7 +3,7 @@ import { Telegram, Input } from 'telegraf';
 import { checkPathExist, clearFile } from '../utils/fs-helper';
 import 'dotenv/config';
 
-const sendReportJob = new CronJob('* 8,22 * * *', (f: any) => f, undefined, true);
+const sendReportJob = new CronJob('0 8,22 * * *', (f: any) => f, undefined, true);
 
 const sendReport = async (
   info: {
@@ -14,7 +14,7 @@ const sendReport = async (
   telegram: Telegram,
 ) => {
   await telegram.sendMessage(
-    process.env.TG_COMMAND_GROUP_ID || 'Random string',
+    process.env.TG_ADMIN_ID || 'Random string',
     `Отчет по работе бота:\n` +
       `Файлов отправлено: ${info.counter}\n` +
       `Ошибок: ${info.errors.length}\n` +
@@ -23,7 +23,7 @@ const sendReport = async (
 
   if (info.errors.length) {
     await telegram.sendDocument(
-      process.env.TG_COMMAND_GROUP_ID || 'Random string',
+      process.env.TG_ADMIN_ID || 'Random string',
       Input.fromLocalFile('error.log'),
     );
   }

@@ -1,0 +1,11 @@
+version: '3'
+services:
+  bot:
+    container_name: "lgpu-shedule-bot"
+    restart: "unless-stopped"
+    build: 
+      context: "./bot"
+      dockerfile: Dockerfile.prod
+    volumes:
+      - ./bot:/var/www/api
+    network_mode: "host"

@@ -1,7 +1,7 @@
 import { Input, Telegraf, Telegram } from 'telegraf';
 import { logger } from './utils/logger';
-import { startSheduleJob, stopSheduleJob, getSheduleJobStatus } from './cron/sendSheduleJob';
-import { startReportJob, stopReportJob, getReportJobStatus } from './cron/sendReportJob';
+import { startSheduleJob, getSheduleJobStatus, stopSheduleJob } from './cron/sendSheduleJob';
+import { getReportJobStatus, startReportJob, stopReportJob } from './cron/sendReportJob';
 import 'dotenv/config.js';
 
 const info: {
@@ -17,75 +17,183 @@ const botToken = process.env.BOT_TOKEN || 'Not token';
 const bot = new Telegraf(botToken);
 const telegram = new Telegram(botToken);
 
-bot.launch().catch((e) => {
-  logger.error(e, 'Bot');
+const start = () => {
+  try {
+    bot.launch();
+
+    console.log('⚡⚡⚡  Bot started  ⚡⚡⚡');
+
+    (async () => {
+      const status = await getSheduleJobStatus();
+
+      await startReportJob(info, status, telegram);
+      await startSheduleJob(info, telegram);
+    })();
+  } catch (e) {
+    logger.error(e, 'Bot');
+  }
+};
+
+const menu = () => ({
+  reply_markup: {
+    inline_keyboard: [
+      [
+        { text: 'Получить файл логов', callback_data: 'GET_LOGS' },
+        { text: 'Получить файл ошибок', callback_data: 'GET_ERRORS' },
+      ],
+      [
+        { text: 'Запустить отчеты', callback_data: 'START_REPORTS' },
+        { text: 'Остановить отчеты', callback_data: 'STOP_REPORTS' },
+      ],
+      [{ text: 'Состояние отчетов', callback_data: 'STATUS_REPORTS' }],
+      [
+        { text: 'Запустить расписание', callback_data: 'START_SHEDULE' },
+        { text: 'Остановить расписание', callback_data: 'STOP_SHEDULE' },
+      ],
+      [{ text: 'Состояние расписания', callback_data: 'STATUS_SHEDULE' }],
+    ],
+  },
 });
 
-bot.command('getLog', async (ctx) => {
-  if (ctx.update.message.chat.id === Number(process.env.TG_COMMAND_GROUP_ID)) {
+bot.start((ctx) => {
+  ctx.reply('Выберите пункт меню:', menu());
+});
+
+bot.on('message', (ctx) => {
+  if (
+    ctx.update.message.from.id === Number(process.env.TG_ADMIN_ID) &&
+    ctx.update.message.chat.type === 'private'
+  )
+    ctx.reply('🔵   *Меню*\n\n_Выберите пункт меню:_\n', {
+      ...menu(),
+      parse_mode: 'MarkdownV2',
+    });
+});
+
+bot.action('GET_LOGS', async (ctx) => {
+  try {
     await ctx.sendDocument(Input.fromLocalFile('combined.log'));
     await logger.log('Sended log', 'Bot');
+
+    ctx.answerCbQuery('Done');
+    ctx.reply('Выберите пункт меню:', menu());
+  } catch (e) {
+    await logger.error(new Error(e).message, 'Bot');
+
+    ctx.answerCbQuery('Error');
+    ctx.reply('Произошла ошибка при попытке загрузить файл. Пожалуйста, попробуйте позже!');
+    ctx.reply('Выберите пункт меню:', menu());
   }
 });
 
-bot.command('getErrors', async (ctx) => {
-  if (ctx.update.message.chat.id === Number(process.env.TG_COMMAND_GROUP_ID)) {
+bot.action('GET_ERRORS', async (ctx) => {
+  try {
     await ctx.sendDocument(Input.fromLocalFile('error.log'));
     await logger.log('Sended error log', 'Bot');
+
+    ctx.answerCbQuery('Done');
+    ctx.reply('Выберите пункт меню:', menu());
+  } catch (e) {
+    await logger.error(new Error(e).message, 'Bot');
+
+    ctx.answerCbQuery('Error');
+    ctx.reply('Произошла ошибка при попытке загрузить файл. Пожалуйста, попробуйте позже!');
+    ctx.reply('Выберите пункт меню:', menu());
   }
 });
 
-bot.command('startShedule', async (ctx) => {
-  if (ctx.update.message.chat.id === Number(process.env.TG_COMMAND_GROUP_ID)) {
+bot.action('START_SHEDULE', async (ctx) => {
+  try {
     await startSheduleJob(info, telegram);
     await logger.log('Shedule Job started', 'Cron');
+
+    ctx.answerCbQuery('Shedule started');
+  } catch (e) {
+    await logger.error(new Error(e).message, 'Bot');
+
+    ctx.answerCbQuery('Error');
+    ctx.reply('Произошла ошибка. Пожалуйста, попробуйте позже!');
+    ctx.reply('Выберите пункт меню:', menu());
   }
 });
 
-bot.command('stopShedule', async (ctx) => {
-  if (ctx.update.message.chat.id === Number(process.env.TG_COMMAND_GROUP_ID)) {
+bot.action('STOP_SHEDULE', async (ctx) => {
+  try {
     await stopSheduleJob();
     await logger.log('Shedule Job stopped', 'Cron');
+
+    ctx.answerCbQuery('Shedule stopped');
+  } catch (e) {
+    await logger.error(new Error(e).message, 'Bot');
+
+    ctx.answerCbQuery('Error');
+    ctx.reply('Произошла ошибка. Пожалуйста, попробуйте позже!');
+    ctx.reply('Выберите пункт меню:', menu());
   }
 });
 
-bot.command('sheduleStatus', async (ctx) => {
-  if (ctx.update.message.chat.id === Number(process.env.TG_COMMAND_GROUP_ID)) {
+bot.action('STATUS_SHEDULE', async (ctx) => {
+  try {
     const status = await getSheduleJobStatus();
-    await ctx.sendMessage(`${status ? 'Cron is now running' : 'Cron is stopped'}`);
     await logger.log(`Checked shedule status`, 'Cron');
+
+    ctx.answerCbQuery(`Shedule ${status ? 'running' : 'stopped'}`);
+  } catch (e) {
+    await logger.error(new Error(e).message, 'Bot');
+
+    ctx.answerCbQuery('Error');
+    ctx.reply('Произошла ошибка. Пожалуйста, попробуйте позже!');
+    ctx.reply('Выберите пункт меню:', menu());
   }
 });
 
-bot.command('startReport', async (ctx) => {
-  if (ctx.update.message.chat.id === Number(process.env.TG_COMMAND_GROUP_ID)) {
+bot.action('START_REPORTS', async (ctx) => {
+  try {
     const status = await getSheduleJobStatus();
     await startReportJob(info, status, telegram);
     await logger.log('Report Job started', 'Cron');
+
+    ctx.answerCbQuery('Reports started');
+  } catch (e) {
+    await logger.error(new Error(e).message, 'Bot');
+
+    ctx.answerCbQuery('Error');
+    ctx.reply('Произошла ошибка. Пожалуйста, попробуйте позже!');
+    ctx.reply('Выберите пункт меню:', menu());
   }
 });
 
-bot.command('stopReport', async (ctx) => {
-  if (ctx.update.message.chat.id === Number(process.env.TG_COMMAND_GROUP_ID)) {
+bot.action('STOP_REPORTS', async (ctx) => {
+  try {
     await stopReportJob();
     await logger.log('Report Job stopped', 'Cron');
+
+    ctx.answerCbQuery('Reports stopped');
+  } catch (e) {
+    await logger.error(new Error(e).message, 'Bot');
+
+    ctx.answerCbQuery('Error');
+    ctx.reply('Произошла ошибка. Пожалуйста, попробуйте позже!');
+    ctx.reply('Выберите пункт меню:', menu());
   }
 });
 
-bot.command('reportStatus', async (ctx) => {
-  if (ctx.update.message.chat.id === Number(process.env.TG_COMMAND_GROUP_ID)) {
+bot.action('STATUS_REPORTS', async (ctx) => {
+  try {
     const status = await getReportJobStatus();
-    await ctx.sendMessage(`${status ? 'Cron is now running' : 'Cron is stopped'}`);
     await logger.log(`Checked report status`, 'Cron');
+
+    ctx.answerCbQuery(`Reports ${status ? 'running' : 'stopped'}`);
+  } catch (e) {
+    await logger.error(new Error(e).message, 'Bot');
+
+    ctx.answerCbQuery('Error');
+    ctx.reply('Произошла ошибка. Пожалуйста, попробуйте позже!');
+    ctx.reply('Выберите пункт меню:', menu());
   }
 });
 
-(async () => {
-  const status = await getSheduleJobStatus();
-
-  await startReportJob(info, status, telegram);
-  await startSheduleJob(info, telegram);
-})();
+start();
 
 // Enable graceful stop
 process.once('SIGINT', () => bot.stop('SIGINT'));
