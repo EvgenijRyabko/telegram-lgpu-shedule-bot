@@ -1,32 +1,41 @@
 import { CronJob } from 'cron';
-import { Telegram, Input } from 'telegraf';
+import { Telegram } from 'telegraf';
 import { checkPathExist, clearFile } from '../utils/fs-helper';
 import 'dotenv/config';
+import { menu } from '../menus';
 
-const sendReportJob = new CronJob('0 8,22 * * *', (f: any) => f, undefined, true);
+const sendReportJob = new CronJob(
+  '0 8,15,22 * * *', // Cron time
+  (f: any) => f, // onTick
+  undefined, // onComplete
+  true, // Start
+  undefined, // Timezone
+  undefined, // Context
+  false, // runOnInit
+  180, // UTC offset
+);
 
 const sendReport = async (
   info: {
     counter: number;
     errors: Error[] | string[];
+    messageId: number | undefined;
   },
   status: boolean,
   telegram: Telegram,
 ) => {
-  await telegram.sendMessage(
+  const res = await telegram.editMessageText(
     process.env.TG_ADMIN_ID || 'Random string',
-    `Отчет по работе бота:\n` +
+    info.messageId,
+    undefined,
+    `[${new Date().toISOString()}] Отчет по работе бота:\n` +
       `Файлов отправлено: ${info.counter}\n` +
       `Ошибок: ${info.errors.length}\n` +
       `В данный момент бот ${status ? 'работает' : 'отключен'}`,
+    menu,
   );
 
-  if (info.errors.length) {
-    await telegram.sendDocument(
-      process.env.TG_ADMIN_ID || 'Random string',
-      Input.fromLocalFile('error.log'),
-    );
-  }
+  info.messageId = typeof res === 'boolean' ? undefined : res.message_id;
 
   const errorLogExist = await checkPathExist('error.log');
   const combinedLogExist = await checkPathExist('combined.log');
@@ -47,6 +56,7 @@ const startReportJob = async (
   info: {
     counter: number;
     errors: Error[] | string[];
+    messageId: number | undefined;
   },
   status: boolean,
   telegram: Telegram,

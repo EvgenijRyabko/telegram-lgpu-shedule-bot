@@ -5,7 +5,16 @@ import { Telegram, Input } from 'telegraf';
 import axios from 'axios';
 import 'dotenv/config';
 
-const sendSheduleJob = new CronJob('*/5 * * * *', (f: any) => f, undefined, true);
+const sendSheduleJob = new CronJob(
+  '*/15 8-22 * * *',
+  (f: any) => f,
+  undefined,
+  true,
+  undefined,
+  undefined,
+  false,
+  180,
+);
 
 const sendShedule = async (
   info: {

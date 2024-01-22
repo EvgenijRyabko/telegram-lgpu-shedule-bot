@@ -42,3 +42,13 @@ export async function writeFile(path: string, data: Buffer) {
     logger.error(e instanceof Error ? e.message : e, 'FS');
   }
 }
+
+export async function getFileText(path: string) {
+  try {
+    const fileText = await fs.readFile(path, { encoding: 'utf8' });
+
+    return fileText;
+  } catch (e: any) {
+    logger.error(e instanceof Error ? e.message : e, 'FS');
+  }
+}
