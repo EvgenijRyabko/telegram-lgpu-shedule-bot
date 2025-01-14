@@ -1,3 +1,5 @@
+import { TO_MAIN, PREVIOUS_PAGE, NEXT_PAGE } from '@common/actions';
+
 export const paginationMenu = (pagination: {
   total: number;
   perPage: number;
@@ -7,12 +9,12 @@ export const paginationMenu = (pagination: {
   reply_markup: {
     inline_keyboard: [
       [
-        pagination.page !== 1 ? { text: ' <-- ', callback_data: 'PREVIOUS_PAGE' } : undefined,
+        pagination.page !== 1 ? { text: ' <-- ', callback_data: PREVIOUS_PAGE } : undefined,
         pagination.page !== pagination.lastPage
-          ? { text: ' --> ', callback_data: 'NEXT_PAGE' }
+          ? { text: ' --> ', callback_data: NEXT_PAGE }
           : undefined,
       ].filter((el) => el) as { text: string; callback_data: string }[],
-      [{ text: 'В главное меню', callback_data: 'TO_MAIN' }],
+      [{ text: 'В главное меню', callback_data: TO_MAIN }],
     ],
   },
 });
